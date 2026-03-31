@@ -1,0 +1,53 @@
+{
+  "name": "yourclass-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Classplus-model multi-tenant ed-tech SaaS platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:all": "concurrently \"pnpm --filter service-auth dev\" \"pnpm --filter service-course dev\" \"pnpm --filter service-video dev\" \"pnpm --filter service-payment dev\" \"pnpm --filter service-notification dev\" \"pnpm --filter service-live dev\" \"pnpm --filter service-test dev\" \"pnpm --filter service-admin dev\"",
+    "dev:with-frontend": "concurrently \"pnpm dev:all\" \"pnpm --filter student-app dev\"",
+    "build": "turbo run build",
+    "build:all": "turbo run build --filter=!student-app --filter=!teacher-app --filter=!admin-panel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "turbo run db:generate",
+    "db:push": "turbo run db:push",
+    "db:migrate": "turbo run db:migrate",
+    "db:seed": "pnpm --filter @yourclass/database db:seed",
+    "start:auth": "pnpm --filter service-auth dev",
+    "start:gateway": "pnpm --filter api-gateway dev",
+    "start:course": "pnpm --filter service-course dev",
+    "start:video": "pnpm --filter service-video dev",
+    "start:payment": "pnpm --filter service-payment dev",
+    "start:notification": "pnpm --filter service-notification dev",
+    "start:live": "pnpm --filter service-live dev",
+    "start:test": "pnpm --filter service-test dev",
+    "start:tenant": "pnpm --filter service-tenant dev",
+    "start:user": "pnpm --filter service-user dev",
+    "start:analytics": "pnpm --filter service-analytics dev",
+    "start:admin": "pnpm --filter service-admin dev",
+    "start:chat": "pnpm --filter service-chat dev",
+    "start:search": "pnpm --filter service-search dev"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0",
+    "prettier": "^3.2.4",
+    "concurrently": "^8.2.2",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}
