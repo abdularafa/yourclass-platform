@@ -83,7 +83,7 @@ export function TenantProvider({ children }: { children: ReactNode }) {
 
   const branding = {
     primaryColor: tenant?.primary_color || colors.primary.default,
-    logoUrl: tenant?.logo_url,
+    logoUrl: tenant?.logo_url ?? null,
     appName: tenant?.name || 'YourClass',
   };
 

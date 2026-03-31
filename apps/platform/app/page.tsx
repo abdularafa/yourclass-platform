@@ -1,10 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useTenant, TenantProvider } from './lib/tenant-context';
+import { TenantProvider } from './lib/tenant-context';
 
 function LandingPage() {
-  const { branding } = useTenant();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
