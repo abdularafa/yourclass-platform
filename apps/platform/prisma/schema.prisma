@@ -1,0 +1,987 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  student
+  teacher
+  institute_admin
+  platform_admin
+}
+
+enum TenantStatus {
+  pending
+  active
+  suspended
+  banned
+  deleted
+}
+
+enum SubscriptionTier {
+  starter
+  growth
+  pro
+  enterprise
+}
+
+enum SubscriptionStatus {
+  trialing
+  active
+  cancelled
+  past_due
+  unpaid
+}
+
+enum CourseVisibility {
+  draft
+  published
+  unlisted
+  archived
+}
+
+enum PricingModel {
+  free
+  one_time
+  subscription
+  installment
+}
+
+enum LessonType {
+  video
+  pdf
+  text
+  audio
+  quiz
+  live
+  external_link
+}
+
+enum VideoTranscodeStatus {
+  pending
+  uploading
+  processing
+  ready
+  failed
+}
+
+enum LiveSessionStatus {
+  scheduled
+  live
+  ended
+  cancelled
+}
+
+enum LivePlatform {
+  agora
+}
+
+enum QuestionType {
+  mcq
+  msq
+  true_false
+  fill_blank
+  subjective
+}
+
+enum QuestionDifficulty {
+  easy
+  medium
+  hard
+}
+
+enum TestAttemptStatus {
+  in_progress
+  completed
+  auto_submitted
+  cancelled
+}
+
+enum ResultVisibility {
+  immediate
+  delayed
+  manual
+}
+
+enum PaymentStatus {
+  pending
+  processing
+  captured
+  failed
+  refunded
+  partially_refunded
+}
+
+enum PaymentGateway {
+  razorpay
+  stripe
+}
+
+enum AccessType {
+  purchased
+  free
+  gifted
+  trial
+  installment
+}
+
+enum NotificationType {
+  enrollment
+  payment
+  live_reminder
+  test_result
+  broadcast
+  certificate
+  system
+}
+
+enum ChatRoomType {
+  batch
+  course
+  doubt
+}
+
+enum MessageContentType {
+  text
+  image
+  file
+  video
+}
+
+enum PayoutStatus {
+  pending
+  processing
+  completed
+  failed
+  cancelled
+}
+
+enum VerificationStatus {
+  pending
+  approved
+  rejected
+}
+
+model Tenant {
+  id                  String             @id @default(uuid())
+  slug                String             @unique
+  name                String
+  subdomain           String             @unique
+  custom_domain       String?            @unique
+  logo_url            String?
+  primary_color       String             @default("#7B5CF0")
+  app_description     String?
+  subscription_tier   SubscriptionTier   @default(starter)
+  subscription_status SubscriptionStatus @default(trialing)
+  commission_rate     Float              @default(0.15)
+  status              TenantStatus       @default(pending)
+  max_students        Int                @default(100)
+  max_storage_gb      Int                @default(5)
+  features            Json               @default("{}")
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+
+  users               User[]
+  teacher_profiles    TeacherProfile[]
+  courses             Course[]
+  batches             Batch[]
+  enrollments         Enrollment[]
+  payments            Payment[]
+  coupons             Coupon[]
+  notifications       Notification[]
+  chat_rooms          ChatRoom[]
+  certificates        Certificate[]
+  analytics_events    AnalyticsEvent[]
+  analytics_summaries AnalyticsSummary[]
+  TenantSubscription  TenantSubscription[]
+  Category            Category[]
+  LiveSession         LiveSession[]
+
+  @@index([slug])
+  @@index([subdomain])
+  @@index([status])
+}
+
+model User {
+  id                 String    @id @default(uuid())
+  tenant_id          String?
+  tenant             Tenant?   @relation(fields: [tenant_id], references: [id])
+  phone              String?
+  email              String?
+  name               String
+  avatar_url         String?
+  role               UserRole  @default(student)
+  is_verified        Boolean   @default(false)
+  is_active          Boolean   @default(true)
+  last_active_at     DateTime?
+  device_fingerprint String?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  teacher_profile  TeacherProfile?
+  enrollments      Enrollment[]
+  payments         Payment[]
+  subscriptions    TenantSubscription[]
+  watch_progress   WatchProgress[]
+  test_attempts    TestAttempt[]
+  notifications    Notification[]
+  device_tokens    DeviceToken[]
+  sessions         Session[]
+  chat_messages    ChatMessage[]
+  doubts           Doubt[]
+  doubt_replies    DoubtReply[]
+  analytics_events AnalyticsEvent[]
+  certificates     Certificate[]
+
+  @@index([tenant_id])
+  @@index([phone])
+  @@index([email])
+}
+
+model TeacherProfile {
+  id                  String             @id @default(uuid())
+  user_id             String             @unique
+  user                User               @relation(fields: [user_id], references: [id])
+  tenant_id           String
+  tenant              Tenant             @relation(fields: [tenant_id], references: [id])
+  bio                 String?
+  subjects            String[]
+  document_url        String?
+  verification_status VerificationStatus @default(pending)
+  payout_type         String?
+  payout_account      String?
+  payout_bank_name    String?
+  payout_ifsc         String?
+  available_balance   Float              @default(0)
+  total_earned        Float              @default(0)
+  total_students      Int                @default(0)
+  total_courses       Int                @default(0)
+  created_at          DateTime           @default(now())
+  updated_at          DateTime           @updatedAt
+
+  courses       Course[]
+  batches       Batch[]
+  live_sessions LiveSession[]
+  tests         Test[]
+
+  @@index([tenant_id])
+  @@index([user_id])
+}
+
+model SubscriptionPlan {
+  id              String   @id @default(uuid())
+  name            String
+  price_monthly   Float
+  price_yearly    Float
+  commission_rate Float
+  max_students    Int
+  max_storage_gb  Int
+  max_courses     Int
+  features        Json
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  subscriptions TenantSubscription[]
+}
+
+model TenantSubscription {
+  id                      String             @id @default(uuid())
+  tenant_id               String
+  tenant                  Tenant             @relation(fields: [tenant_id], references: [id])
+  plan_id                 String
+  plan                    SubscriptionPlan   @relation(fields: [plan_id], references: [id])
+  status                  SubscriptionStatus @default(trialing)
+  current_period_start    DateTime
+  current_period_end      DateTime
+  cancel_at               DateTime?
+  gateway_subscription_id String?
+  created_at              DateTime           @default(now())
+  updated_at              DateTime           @updatedAt
+  User                    User?              @relation(fields: [userId], references: [id])
+  userId                  String?
+
+  @@index([tenant_id])
+  @@index([plan_id])
+}
+
+model Category {
+  id         String   @id @default(uuid())
+  tenant_id  String
+  tenant     Tenant   @relation(fields: [tenant_id], references: [id])
+  name       String
+  color      String?
+  icon       String?
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+
+  courses Course[]
+
+  @@unique([tenant_id, name])
+  @@index([tenant_id])
+}
+
+model Course {
+  id                  String           @id @default(uuid())
+  tenant_id           String
+  tenant              Tenant           @relation(fields: [tenant_id], references: [id])
+  teacher_id          String
+  teacher             TeacherProfile   @relation(fields: [teacher_id], references: [id])
+  category_id         String?
+  category            Category?        @relation(fields: [category_id], references: [id])
+  title               String
+  slug                String
+  description         String?          @db.Text
+  thumbnail_url       String?
+  language            String           @default("en")
+  pricing_model       PricingModel     @default(one_time)
+  price               Float            @default(0)
+  discount_price      Float?
+  validity_days       Int?
+  enrollment_limit    Int?
+  total_enrolled      Int              @default(0)
+  total_rating        Float            @default(0)
+  total_reviews       Int              @default(0)
+  certificate_enabled Boolean          @default(false)
+  prerequisites       String[]
+  visibility          CourseVisibility @default(draft)
+  drip_content        Boolean          @default(false)
+  published_at        DateTime?
+  created_at          DateTime         @default(now())
+  updated_at          DateTime         @updatedAt
+
+  modules       Module[]
+  enrollments   Enrollment[]
+  payments      Payment[]
+  live_sessions LiveSession[]
+  tests         Test[]
+  batches       BatchCourse[]
+  coupons       Coupon[]
+
+  @@unique([tenant_id, slug])
+  @@index([tenant_id])
+  @@index([teacher_id])
+  @@index([category_id])
+  @@index([visibility])
+}
+
+model Module {
+  id              String   @id @default(uuid())
+  course_id       String
+  course          Course   @relation(fields: [course_id], references: [id], onDelete: Cascade)
+  tenant_id       String
+  title           String
+  description     String?
+  sequence        Int
+  is_free_preview Boolean  @default(false)
+  is_published    Boolean  @default(false)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  lessons Lesson[]
+
+  @@index([course_id])
+  @@index([tenant_id])
+}
+
+model Lesson {
+  id               String     @id @default(uuid())
+  module_id        String
+  module           Module     @relation(fields: [module_id], references: [id], onDelete: Cascade)
+  course_id        String
+  tenant_id        String
+  title            String
+  lesson_type      LessonType @default(video)
+  sequence         Int
+  video_id         String?
+  video            Video?     @relation(fields: [video_id], references: [id])
+  content          String?    @db.Text
+  test_id          String?
+  test             Test?      @relation(fields: [test_id], references: [id])
+  external_url     String?
+  duration_seconds Int?
+  is_published     Boolean    @default(false)
+  is_free_preview  Boolean    @default(false)
+  drip_days        Int?
+  created_at       DateTime   @default(now())
+  updated_at       DateTime   @updatedAt
+
+  watch_progress WatchProgress[]
+  test_attempts  TestAttempt[]
+  doubts         Doubt[]
+  doubt_replies  DoubtReply[]
+
+  @@index([module_id])
+  @@index([course_id])
+  @@index([tenant_id])
+  @@index([video_id])
+  @@index([test_id])
+}
+
+model Video {
+  id                  String               @id @default(uuid())
+  tenant_id           String
+  lesson_id           String?              @unique
+  uploader_id         String
+  title               String
+  s3_key              String
+  hls_master_url      String?
+  thumbnail_url       String?
+  transcode_status    VideoTranscodeStatus @default(pending)
+  duration            Int?
+  resolution_variants Json?
+  file_size           Int?
+  width               Int?
+  height              Int?
+  created_at          DateTime             @default(now())
+  updated_at          DateTime             @updatedAt
+
+  lessons        Lesson[]
+  watch_progress WatchProgress[]
+
+  @@index([tenant_id])
+  @@index([uploader_id])
+}
+
+model Batch {
+  id             String         @id @default(uuid())
+  tenant_id      String
+  tenant         Tenant         @relation(fields: [tenant_id], references: [id])
+  teacher_id     String
+  teacher        TeacherProfile @relation(fields: [teacher_id], references: [id])
+  name           String
+  description    String?
+  thumbnail_url  String?
+  price          Float          @default(0)
+  start_date     DateTime?
+  end_date       DateTime?
+  max_students   Int?
+  enrolled_count Int            @default(0)
+  is_active      Boolean        @default(true)
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+
+  courses       BatchCourse[]
+  enrollments   Enrollment[]
+  live_sessions LiveSession[]
+  chat_rooms    ChatRoom[]
+
+  @@index([tenant_id])
+  @@index([teacher_id])
+}
+
+model BatchCourse {
+  id        String @id @default(uuid())
+  batch_id  String
+  batch     Batch  @relation(fields: [batch_id], references: [id], onDelete: Cascade)
+  course_id String
+  course    Course @relation(fields: [course_id], references: [id], onDelete: Cascade)
+
+  @@unique([batch_id, course_id])
+}
+
+model LiveSession {
+  id               String            @id @default(uuid())
+  tenant_id        String
+  tenant           Tenant            @relation(fields: [tenant_id], references: [id])
+  teacher_id       String
+  teacher          TeacherProfile    @relation(fields: [teacher_id], references: [id])
+  batch_id         String?
+  batch            Batch?            @relation(fields: [batch_id], references: [id])
+  course_id        String
+  course           Course            @relation(fields: [course_id], references: [id])
+  title            String
+  description      String?
+  scheduled_at     DateTime
+  duration_minutes Int               @default(60)
+  actual_start_at  DateTime?
+  actual_end_at    DateTime?
+  agora_channel    String?
+  recording_url    String?
+  max_viewers      Int               @default(300)
+  viewer_count     Int               @default(0)
+  status           LiveSessionStatus @default(scheduled)
+  created_at       DateTime          @default(now())
+  updated_at       DateTime          @updatedAt
+
+  chat_messages ChatMessage[]
+
+  @@index([tenant_id])
+  @@index([teacher_id])
+  @@index([batch_id])
+  @@index([course_id])
+  @@index([scheduled_at])
+  @@index([status])
+}
+
+model ChatRoom {
+  id         String       @id @default(uuid())
+  tenant_id  String
+  tenant     Tenant       @relation(fields: [tenant_id], references: [id])
+  type       ChatRoomType
+  batch_id   String?
+  batch      Batch?       @relation(fields: [batch_id], references: [id])
+  course_id  String?
+  name       String
+  is_muted   Boolean      @default(false)
+  created_at DateTime     @default(now())
+
+  messages ChatMessage[]
+
+  @@index([tenant_id])
+  @@index([batch_id])
+}
+
+model ChatMessage {
+  id            String             @id @default(uuid())
+  room_id       String
+  room          ChatRoom           @relation(fields: [room_id], references: [id])
+  tenant_id     String
+  user_id       String
+  user          User               @relation(fields: [user_id], references: [id])
+  content       String             @db.Text
+  content_type  MessageContentType @default(text)
+  image_url     String?
+  file_url      String?
+  is_pinned     Boolean            @default(false)
+  is_deleted    Boolean            @default(false)
+  created_at    DateTime           @default(now())
+  LiveSession   LiveSession?       @relation(fields: [liveSessionId], references: [id])
+  liveSessionId String?
+
+  @@index([room_id])
+  @@index([tenant_id])
+  @@index([user_id])
+}
+
+model Test {
+  id                   String           @id @default(uuid())
+  tenant_id            String
+  course_id            String
+  course               Course           @relation(fields: [course_id], references: [id])
+  teacher_id           String
+  teacher              TeacherProfile   @relation(fields: [teacher_id], references: [id])
+  title                String
+  instructions         String?          @db.Text
+  time_limit_seconds   Int?
+  marks_per_question   Float            @default(1)
+  negative_marking_pct Float            @default(0)
+  passing_score_pct    Float            @default(35)
+  max_attempts         Int              @default(1)
+  shuffle_questions    Boolean          @default(false)
+  shuffle_options      Boolean          @default(false)
+  result_visibility    ResultVisibility @default(immediate)
+  is_published         Boolean          @default(false)
+  is_active            Boolean          @default(true)
+  created_at           DateTime         @default(now())
+  updated_at           DateTime         @updatedAt
+
+  questions Question[]
+  attempts  TestAttempt[]
+  lessons   Lesson[]
+
+  @@index([tenant_id])
+  @@index([course_id])
+  @@index([teacher_id])
+  @@index([is_published])
+}
+
+model Question {
+  id                    String             @id @default(uuid())
+  test_id               String
+  test                  Test               @relation(fields: [test_id], references: [id], onDelete: Cascade)
+  tenant_id             String
+  question_text         String             @db.Text
+  question_image_url    String?
+  question_type         QuestionType       @default(mcq)
+  section               String?
+  marks                 Float              @default(1)
+  negative_marks        Float              @default(0)
+  difficulty            QuestionDifficulty @default(medium)
+  explanation           String?            @db.Text
+  explanation_video_url String?
+  sequence              Int
+  created_at            DateTime           @default(now())
+  updated_at            DateTime           @updatedAt
+
+  options Option[]
+  answers TestAnswer[]
+
+  @@index([test_id])
+  @@index([tenant_id])
+}
+
+model Option {
+  id               String   @id @default(uuid())
+  question_id      String
+  question         Question @relation(fields: [question_id], references: [id], onDelete: Cascade)
+  option_text      String
+  option_image_url String?
+  is_correct       Boolean  @default(false)
+  sequence         Int
+  created_at       DateTime @default(now())
+
+  @@index([question_id])
+}
+
+model TestAttempt {
+  id                 String            @id @default(uuid())
+  test_id            String
+  test               Test              @relation(fields: [test_id], references: [id])
+  user_id            String
+  user               User              @relation(fields: [user_id], references: [id])
+  lesson_id          String?
+  lesson             Lesson?           @relation(fields: [lesson_id], references: [id])
+  status             TestAttemptStatus @default(in_progress)
+  question_order     Json?
+  started_at         DateTime          @default(now())
+  submitted_at       DateTime?
+  score              Float?
+  total_marks        Float?
+  percentage         Float?
+  rank               Int?
+  percentile         Float?
+  time_taken_seconds Int?
+  tab_switch_count   Int               @default(0)
+  is_flagged         Boolean           @default(false)
+  metadata           Json?
+  created_at         DateTime          @default(now())
+  updated_at         DateTime          @updatedAt
+
+  answers TestAnswer[]
+
+  @@unique([test_id, user_id, status])
+  @@index([test_id])
+  @@index([user_id])
+}
+
+model TestAnswer {
+  id                  String      @id @default(uuid())
+  attempt_id          String
+  attempt             TestAttempt @relation(fields: [attempt_id], references: [id], onDelete: Cascade)
+  question_id         String
+  question            Question    @relation(fields: [question_id], references: [id])
+  selected_option_ids String[]
+  is_correct          Boolean?
+  marks_awarded       Float?
+  time_spent_seconds  Int?
+  created_at          DateTime    @default(now())
+
+  @@index([attempt_id])
+  @@index([question_id])
+}
+
+model Enrollment {
+  id           String     @id @default(uuid())
+  user_id      String
+  user         User       @relation(fields: [user_id], references: [id])
+  course_id    String
+  course       Course     @relation(fields: [course_id], references: [id])
+  batch_id     String?
+  batch        Batch?     @relation(fields: [batch_id], references: [id])
+  tenant_id    String
+  tenant       Tenant     @relation(fields: [tenant_id], references: [id])
+  payment_id   String?
+  payment      Payment?   @relation(fields: [payment_id], references: [id])
+  access_type  AccessType @default(purchased)
+  progress_pct Float      @default(0)
+  expires_at   DateTime?
+  enrolled_at  DateTime   @default(now())
+  completed_at DateTime?
+  created_at   DateTime   @default(now())
+  updated_at   DateTime   @updatedAt
+
+  @@unique([user_id, course_id, batch_id])
+  @@index([user_id])
+  @@index([course_id])
+  @@index([batch_id])
+  @@index([tenant_id])
+}
+
+model Payment {
+  id                 String         @id @default(uuid())
+  user_id            String
+  user               User           @relation(fields: [user_id], references: [id])
+  tenant_id          String
+  tenant             Tenant         @relation(fields: [tenant_id], references: [id])
+  course_id          String?
+  course             Course?        @relation(fields: [course_id], references: [id])
+  batch_id           String?
+  amount             Float
+  currency           String         @default("INR")
+  status             PaymentStatus  @default(pending)
+  gateway            PaymentGateway @default(razorpay)
+  gateway_order_id   String?
+  gateway_payment_id String?
+  gateway_refund_id  String?
+  platform_fee       Float?
+  teacher_earning    Float?
+  gateway_fee        Float?
+  coupon_id          String?
+  coupon_code        String?
+  coupon_discount    Float?
+  installment_number Int?
+  metadata           Json?
+  created_at         DateTime       @default(now())
+  updated_at         DateTime       @updatedAt
+
+  enrollments    Enrollment[]
+  payment_events PaymentEvent[]
+
+  @@index([user_id])
+  @@index([tenant_id])
+  @@index([course_id])
+  @@index([batch_id])
+  @@index([gateway_order_id])
+}
+
+model PaymentEvent {
+  id         String   @id @default(uuid())
+  payment_id String
+  payment    Payment  @relation(fields: [payment_id], references: [id])
+  event_type String
+  payload    Json
+  created_at DateTime @default(now())
+
+  @@unique([payment_id, event_type])
+  @@index([payment_id])
+}
+
+model Coupon {
+  id                    String    @id @default(uuid())
+  tenant_id             String
+  tenant                Tenant    @relation(fields: [tenant_id], references: [id])
+  course_id             String?
+  course                Course?   @relation(fields: [course_id], references: [id])
+  code                  String
+  discount_type         String
+  discount_value        Float
+  min_order_amount      Float?
+  max_discount_amount   Float?
+  max_uses              Int?
+  used_count            Int       @default(0)
+  per_user_limit        Int?
+  applicable_course_ids String[]
+  starts_at             DateTime?
+  expires_at            DateTime?
+  is_active             Boolean   @default(true)
+  created_at            DateTime  @default(now())
+  updated_at            DateTime  @updatedAt
+
+  @@unique([tenant_id, code])
+  @@index([tenant_id])
+}
+
+model Payout {
+  id                String       @id @default(uuid())
+  tenant_id         String
+  teacher_id        String
+  amount            Float
+  status            PayoutStatus @default(pending)
+  gateway_payout_id String?
+  failure_reason    String?
+  initiated_at      DateTime     @default(now())
+  completed_at      DateTime?
+  created_at        DateTime     @default(now())
+  updated_at        DateTime     @updatedAt
+
+  @@index([tenant_id])
+  @@index([teacher_id])
+}
+
+model WatchProgress {
+  id               String   @id @default(uuid())
+  user_id          String
+  user             User     @relation(fields: [user_id], references: [id])
+  video_id         String
+  video            Video    @relation(fields: [video_id], references: [id])
+  lesson_id        String?
+  course_id        String?
+  tenant_id        String
+  position_seconds Int      @default(0)
+  duration_seconds Int      @default(0)
+  completed        Boolean  @default(false)
+  watch_count      Int      @default(1)
+  last_watched_at  DateTime @default(now())
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  Lesson           Lesson?  @relation(fields: [lessonId], references: [id])
+  lessonId         String?
+
+  @@unique([user_id, video_id])
+  @@index([user_id])
+  @@index([video_id])
+  @@index([tenant_id])
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  user_id    String
+  user       User             @relation(fields: [user_id], references: [id])
+  tenant_id  String
+  tenant     Tenant           @relation(fields: [tenant_id], references: [id])
+  title      String
+  body       String           @db.Text
+  type       NotificationType @default(system)
+  action_url String?
+  read_at    DateTime?
+  created_at DateTime         @default(now())
+
+  @@index([user_id])
+  @@index([tenant_id])
+  @@index([read_at, created_at])
+}
+
+model DeviceToken {
+  id          String   @id @default(uuid())
+  user_id     String
+  user        User     @relation(fields: [user_id], references: [id])
+  tenant_id   String
+  token       String
+  platform    String
+  device_info Json?
+  is_active   Boolean  @default(true)
+  updated_at  DateTime @default(now())
+  created_at  DateTime @default(now())
+
+  @@unique([user_id, token, platform])
+  @@index([user_id])
+  @@index([tenant_id])
+  @@index([token])
+}
+
+model Session {
+  id                 String    @id @default(uuid())
+  user_id            String
+  user               User      @relation(fields: [user_id], references: [id])
+  tenant_id          String?
+  token_hash         String
+  family_id          String    @default(uuid())
+  device_name        String?
+  device_fingerprint String?
+  ip_address         String?
+  user_agent         String?
+  is_revoked         Boolean   @default(false)
+  expires_at         DateTime
+  revoked_at         DateTime?
+  created_at         DateTime  @default(now())
+
+  @@index([user_id])
+  @@index([token_hash])
+}
+
+model Doubt {
+  id            String   @id @default(uuid())
+  lesson_id     String
+  lesson        Lesson   @relation(fields: [lesson_id], references: [id])
+  user_id       String
+  user          User     @relation(fields: [user_id], references: [id])
+  tenant_id     String
+  question_text String   @db.Text
+  upvotes       Int      @default(0)
+  is_resolved   Boolean  @default(false)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  replies DoubtReply[]
+
+  @@index([lesson_id])
+  @@index([user_id])
+  @@index([tenant_id])
+}
+
+model DoubtReply {
+  id               String   @id @default(uuid())
+  doubt_id         String
+  doubt            Doubt    @relation(fields: [doubt_id], references: [id], onDelete: Cascade)
+  user_id          String
+  user             User     @relation(fields: [user_id], references: [id])
+  content          String   @db.Text
+  is_teacher_reply Boolean  @default(false)
+  video_url        String?
+  is_resolved      Boolean  @default(false)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  Lesson           Lesson?  @relation(fields: [lessonId], references: [id])
+  lessonId         String?
+
+  @@index([doubt_id])
+  @@index([user_id])
+}
+
+model Certificate {
+  id              String   @id @default(uuid())
+  user_id         String
+  user            User     @relation(fields: [user_id], references: [id])
+  course_id       String
+  tenant_id       String
+  tenant          Tenant   @relation(fields: [tenant_id], references: [id])
+  verification_id String   @unique
+  template_id     String
+  download_url    String?
+  issued_at       DateTime @default(now())
+  created_at      DateTime @default(now())
+
+  @@index([user_id])
+  @@index([course_id])
+  @@index([tenant_id])
+}
+
+model AnalyticsEvent {
+  id          String   @id @default(uuid())
+  user_id     String?
+  user        User?    @relation(fields: [user_id], references: [id])
+  tenant_id   String?
+  tenant      Tenant?  @relation(fields: [tenant_id], references: [id])
+  session_id  String?
+  event_type  String
+  entity_type String?
+  entity_id   String?
+  metadata    Json?
+  created_at  DateTime @default(now())
+
+  @@index([tenant_id, event_type, created_at])
+  @@index([user_id, created_at])
+  @@index([entity_type, entity_id])
+}
+
+model AnalyticsSummary {
+  id           String   @id @default(uuid())
+  tenant_id    String
+  tenant       Tenant   @relation(fields: [tenant_id], references: [id])
+  entity_type  String
+  entity_id    String
+  metric_key   String
+  metric_value Float
+  period_type  String
+  period_start DateTime
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@unique([tenant_id, entity_type, entity_id, metric_key, period_type, period_start])
+  @@index([tenant_id, period_type, period_start])
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actor_id     String?
+  actor_role   String?
+  tenant_id    String?
+  action       String
+  entity_type  String
+  entity_id    String?
+  before_state Json?
+  after_state  Json?
+  ip_address   String?
+  user_agent   String?
+  created_at   DateTime @default(now())
+
+  @@index([actor_id])
+  @@index([tenant_id])
+  @@index([entity_type, entity_id])
+  @@index([created_at])
+}
