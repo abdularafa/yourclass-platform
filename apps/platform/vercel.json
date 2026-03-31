@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm install --no-frozen-lockfile && npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install --no-frozen-lockfile",
+  "buildCommand": "cd apps/platform && npm install --ignore-scripts && npm run postinstall && npm run build",
+  "devCommand": "cd apps/platform && npm run dev",
+  "installCommand": "cd apps/platform && npm install --ignore-scripts",
   "framework": "nextjs"
 }
