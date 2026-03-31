@@ -9,11 +9,9 @@
     "services/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
-    "dev:all": "concurrently \"pnpm --filter service-auth dev\" \"pnpm --filter service-course dev\" \"pnpm --filter service-video dev\" \"pnpm --filter service-payment dev\" \"pnpm --filter service-notification dev\" \"pnpm --filter service-live dev\" \"pnpm --filter service-test dev\" \"pnpm --filter service-admin dev\"",
-    "dev:with-frontend": "concurrently \"pnpm dev:all\" \"pnpm --filter student-app dev\"",
-    "build": "turbo run build",
-    "build:all": "turbo run build --filter=!student-app --filter=!teacher-app --filter=!admin-panel",
+    "dev": "cd apps/platform && next dev",
+    "build": "cd apps/platform && next build",
+    "start": "cd apps/platform && next start",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",

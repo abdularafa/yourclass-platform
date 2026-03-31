@@ -1,0 +1,126 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;500;600;700&display=swap');
+
+:root {
+  --background-base: #0d0d0f;
+  --background-surface: #141417;
+  --background-elevated: #1c1c21;
+  --background-hover: #1f1f25;
+  --border-subtle: #2a2a32;
+  --border-strong: #3d3d4a;
+  --text-primary: #f0f0f5;
+  --text-secondary: #8a8a9a;
+  --text-disabled: #4a4a58;
+  --primary: #7b5cf0;
+  --primary-hover: #8b6ef5;
+  --primary-active: #6a4de0;
+  --primary-disabled: #3d3158;
+  --accent-teal: #00d4a8;
+  --status-error: #e85050;
+  --status-warning: #e8a020;
+  --status-success: #00d4a8;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--background-base);
+  color: var(--text-primary);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: 'Syne', sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: 'DM Sans', sans-serif;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 24px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--text-primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  background-color: var(--background-hover);
+}
+
+.card {
+  background-color: var(--background-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 20px;
+  transition: border-color 0.2s ease;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+}
+
+.input {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--background-surface);
+  color: var(--text-primary);
+  font-size: 15px;
+  width: 100%;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(123, 92, 240, 0.2);
+}
+
+.input::placeholder {
+  color: var(--text-disabled);
+}
