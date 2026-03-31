@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "cd ../../packages/database && npx prisma generate --schema=prisma/schema.prisma && cd ../../apps/platform && next build",
+    "build": "cd ../../packages/database && prisma generate && cd ../../apps/platform && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "postinstall": "cd ../../packages/database && npx prisma generate --schema=prisma/schema.prisma"
+    "postinstall": "cd ../../packages/database && prisma generate"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
